@@ -1,0 +1,86 @@
+version: "3"
+
+networks:
+  web:
+    external: true
+  internal:
+    external: false
+
+services:
+  dolibarr_web:
+    container_name: dolibarr_web
+    image: ${NGINX_IMAGE:-nginx:1.17.7-alpine}
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:${DOLIBARR_DOMAIN:-dolibarr.localhost}
+      - traefik.docker.network=web
+      - traefik.port=80
+    networks:
+      - web
+      - internal
+    expose:
+      - "80"
+    depends_on:
+      - dolibarr_php
+    links:
+      - dolibarr_php
+    volumes:
+      - ${DOLIBARR_DATA:-./data/}/html:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  dolibarr_php:
+    container_name: dolibarr_php
+    build:
+      context: .
+      args:
+        php_fpm_image: ${PHP_FPM_IMAGE:-php:7.4.1-fpm-alpine}
+        dolibarr_version: ${DOLIBARR_VERSION:-10.0.6}
+    image: ${DOLIBARR_IMAGE:-dolibarr:10.0.6-alpine}
+    restart: always
+    depends_on:
+      - dolibarr_db
+      - dolibarr_memcached
+    links:
+      - dolibarr_db
+      - dolibarr_memcached
+    networks:
+      - internal
+    expose:
+      - "9000"
+    volumes:
+      - ${DOLIBARR_DATA:-./data/}/html:/var/www/html
+      - ${DOLIBARR_DATA:-./data/}/documents:/var/www/documents
+      - ${DOLIBARR_DATA:-./data/}/scripts:/var/www/scripts
+    environment:
+      - DOLI_DB_TYPE=pgsql
+      - DOLI_DB_HOST=dolibarr_db
+      - DOLI_DB_PORT=5432
+      - DOLI_DB_NAME=${POSTGRES_DB:-dolibarr}
+      - DOLI_DB_USER=${POSTGRES_USER:-dolibarr}
+      - DOLI_DB_PASSWORD=${POSTGRES_PASSWORD:-dolibarr}
+      - PHP_INI_DATE_TIMEZONE=${PHP_INI_DATE_TIMEZONE:-UTC}
+
+  dolibarr_db:
+    container_name: dolibarr_db
+    image: ${POSTGRES_IMAGE:-postgres:12.1-alpine}
+    restart: always
+    networks:
+      - internal
+    expose:
+      - "5432"
+    volumes:
+      - ${DOLIBARR_DATA:-./data/}/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-dolibarr}
+      - POSTGRES_USER=${POSTGRES_USER:-dolibarr}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dolibarr}
+
+  dolibarr_memcached:
+    container_name: dolibarr_memcached
+    image: ${MEMCACHED_IMAGE:-memcached:1.5.20-alpine}
+    restart: always
+    networks:
+      - internal
+    expose:
+      - "11211"
