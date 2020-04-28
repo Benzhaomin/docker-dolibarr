@@ -9,7 +9,7 @@ networks:
 services:
   dolibarr_web:
     container_name: dolibarr_web
-    image: ${NGINX_IMAGE:-nginx:1.17.7-alpine}
+    image: ${NGINX_IMAGE:-nginx:1.17.10-alpine}
     restart: always
     labels:
       - traefik.enable=true
@@ -34,9 +34,9 @@ services:
     build:
       context: .
       args:
-        php_fpm_image: ${PHP_FPM_IMAGE:-php:7.4.1-fpm-alpine}
-        dolibarr_version: ${DOLIBARR_VERSION:-10.0.6}
-    image: ${DOLIBARR_IMAGE:-dolibarr:10.0.6-alpine}
+        php_fpm_image: ${PHP_FPM_IMAGE:-php:7.4.5-fpm-alpine}
+        dolibarr_version: ${DOLIBARR_VERSION:-11.0.3}
+    image: ${DOLIBARR_IMAGE:-dolibarr:11.0.3-alpine}
     restart: always
     depends_on:
       - dolibarr_db
@@ -63,7 +63,7 @@ services:
 
   dolibarr_db:
     container_name: dolibarr_db
-    image: ${POSTGRES_IMAGE:-postgres:12.1-alpine}
+    image: ${POSTGRES_IMAGE:-postgres:12.2-alpine}
     restart: always
     networks:
       - internal
@@ -78,7 +78,7 @@ services:
 
   dolibarr_memcached:
     container_name: dolibarr_memcached
-    image: ${MEMCACHED_IMAGE:-memcached:1.5.20-alpine}
+    image: ${MEMCACHED_IMAGE:-memcached:1.6.5-alpine}
     restart: always
     networks:
       - internal
